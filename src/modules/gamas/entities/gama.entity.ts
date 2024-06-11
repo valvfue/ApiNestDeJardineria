@@ -1,28 +1,17 @@
-import { Column, Entity, ManyToMany, ManyToOne, OneToMany, PrimaryColumn, PrimaryGeneratedColumn } from "typeorm";
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 import { Producto } from '../../productos/entities/producto.entity';
 
-@Entity({
-    name:'GAMAS'
-})
+@Entity()
 export class Gama {
+  @PrimaryGeneratedColumn()
+  id: number;
 
+  @Column()
+  nombre: string;
 
-    @PrimaryColumn('text', {unique: true})
-    nombre: string;
-
-    @Column('text', {unique: true})
-    descripcion: string;
-
-    @Column('text')
-    imagen: string
-
-    @OneToMany(
-        () => Producto,
-        (producto) => producto.gama,
-        {cascade: false}
-    )
-    productos?: Producto[];
- 
+  @OneToMany(() => Producto, producto => producto.gama)
+  productos: Producto[];
 }
+
 
 

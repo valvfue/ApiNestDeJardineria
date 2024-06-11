@@ -1,65 +1,39 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { CreateProductoDto } from './dto/create-producto.dto';
-import { UpdateProductoDto } from './dto/update-producto.dto';
-import { ProductosRepository } from './entities/productos.repository';
+import { Repository } from 'typeorm';
 import { Producto } from './entities/producto.entity';
-import { GamasService } from '../gamas/gamas.service';
+import { CreateProductoDto } from './dto/create-producto.dto';
+import { Gama } from '../gamas/entities/gama.entity';
 
 @Injectable()
 export class ProductosService {
   constructor(
     @InjectRepository(Producto)
-    private readonly productosRepo: ProductosRepository,
-    private readonly gamasService: GamasService 
-  )
-  {}
-  async create(createProductoDto: CreateProductoDto) {
-   try{
-      const { codgama, ...campos } = createProductoDto;
-      const gamaObj = await this.gamasService.findOne(codgama);
-      const productoDB = this.productosRepo.create(createProductoDto);
-      productoDB.gama = gamaObj;
-      
-      console.log(productoDB)
-      const productosNew = await this.productosRepo.save(productoDB);
-      return{
-        msg: 'Producto creada',
-        status: 200,
-        data: productosNew
-      }
+    private readonly productosRepository: Repository<Producto>,
+    @InjectRepository(Gama)
+    private readonly gamasRepository: Repository<Gama>,
+  ) {}
 
-   }catch(error){
-    console.log(error)
-    return new InternalServerErrorException('Error em productos')
-   }
+  async create(createProductoDto: CreateProductoDto): Promise<Producto> {
+    const gama = await this.gamasRepository.findOne({ where: { id: createProductoDto.gamaId } });
+    const producto = this.productosRepository.create({ 
+      nombre: createProductoDto.nombre, 
+      gama 
+    });
+    return this.productosRepository.save(producto);
   }
 
-  findAll() {
-    return `This action returns all productos`;
+  findAll(): Promise<Producto[]> {
+    return this.productosRepository.find({ relations: ['gama'] });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} producto`;
+  findOne(id: number): Promise<Producto> {
+    return this.productosRepository.findOne({ where: { id }, relations: ['gama'] });
   }
 
-  update(id: number, updateProductoDto: UpdateProductoDto) {
-    return `This action updates a #${id} producto`;
+  async deleteAllProductos(): Promise<void> {
+    await this.productosRepository.delete({});
   }
-
-  remove(id: number) {
-    return `This action removes a #${id} producto`;
-  }
-
-  async deleteAllProductos(){
-    const query = this.productosRepo.createQueryBuilder('PRODUCTOS');
-    try{
-      return await query  
-        .delete()
-        .where({})
-        .execute()
-    }catch(error){
-      throw new InternalServerErrorException('sysadmin ...')
-    }
-  }
+  
 }
+
